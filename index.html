@@ -91,6 +91,7 @@
     <div class="barre" id="barre" role="progressbar" aria-label="Vidéos faites" aria-valuemin="0" aria-valuemax="100"><i></i></div>
     <p class="phrase" id="phrase">—</p>
     <p class="maj" id="maj">—</p>
+    <p class="maj" id="auto">Actualisation automatique…</p>
     <p class="alerte" id="alerte" hidden></p>
   </section>
 
@@ -118,7 +119,7 @@
     </dl>
   </section>
 
-  <p class="pied">Le PC envoie l'avancement toutes les 90 secondes environ. La page se met à jour toute seule.</p>
+  <p class="pied">Le PC envoie l'avancement toutes les 90 secondes environ. La page se met à jour toute seule : pas besoin de la recharger.</p>
 </main>
 
 <script>
@@ -129,7 +130,9 @@
   const API = `https://api.github.com/repos/${PROPRIO}/${DEPOT}/contents/etat.json?ref=donnees`;
   const BRUT = `https://raw.githubusercontent.com/${PROPRIO}/${DEPOT}/donnees/etat.json`;
   const $ = (id) => document.getElementById(id);
-  let donnees = null, etag = null, apiPauseJusqua = 0, erreurReseau = false;
+  let donnees = null, etag = null, apiPauseJusqua = 0, erreurReseau = false, viaCache = false;
+  let minuterie = null, prochainA = 0;
+  const ouverteA = Date.now();
 
   const date = (s) => { const t = new Date(s); return s && !isNaN(t) ? t : null; };
   const hm = (t) => t.getHours() + ' h ' + String(t.getMinutes()).padStart(2, '0');
@@ -177,6 +180,9 @@
     const s = Math.max(0, Math.round((Date.now() - t) / 1000));
     const age = s < 60 ? `il y a ${s} s` : s < 3600 ? `il y a ${Math.floor(s / 60)} min` : `il y a ${Math.floor(s / 3600)} h ${String(Math.floor(s / 60) % 60).padStart(2, '0')}`;
     $('maj').textContent = `Dernier envoi du PC : ${hm(t)} (${age})` + (erreurReseau ? ' · connexion perdue, nouvel essai…' : '');
+    const reste = Math.max(0, Math.round((prochainA - Date.now()) / 1000));
+    $('auto').textContent = (reste > 0 ? `Actualisation automatique dans ${reste} s` : 'Actualisation…')
+      + (viaCache ? ' (copie en cache : jusqu’à 5 min de retard)' : '');
     const al = $('alerte');
     if (d.etat !== 'termine' && s > 600) {
       al.textContent = "Le PC n'a rien envoyé depuis plus de 10 minutes : il est peut-être éteint, en veille ou sans internet.";
@@ -245,14 +251,14 @@
         const h = { Accept: 'application/vnd.github.raw+json' };
         if (etag) h['If-None-Match'] = etag;
         const rep = await fetch(API, { headers: h, cache: 'no-store' });
-        if (rep.status === 304) { erreurReseau = false; tic(); return; }
-        if (rep.ok) { r = rep; etag = rep.headers.get('etag'); }
+        if (rep.status === 304) { erreurReseau = false; viaCache = false; tic(); return; }
+        if (rep.ok) { r = rep; etag = rep.headers.get('etag'); viaCache = false; }
         else if (rep.status === 403 || rep.status === 429) {
           const reset = +rep.headers.get('x-ratelimit-reset');
           apiPauseJusqua = reset ? reset * 1000 : Date.now() + 15 * 60e3;
         }
       }
-      if (!r) r = await fetch(BRUT + '?t=' + Date.now(), { cache: 'no-store' });
+      if (!r) { r = await fetch(BRUT + '?t=' + Date.now(), { cache: 'no-store' }); viaCache = true; }
       if (!r.ok) throw new Error('HTTP ' + r.status);
       donnees = await r.json();
       erreurReseau = false;
@@ -263,10 +269,34 @@
     }
   }
 
-  charger();
-  setInterval(() => { if (!document.hidden) charger(); }, 60000);
+  // Actualisation automatique : on relit les chiffres juste apres le prochain envoi du PC (toutes les 90 s),
+  // ce qui reste sous la limite de GitHub (60 lectures par heure). La page entiere se recharge aussi
+  // d'elle-meme toutes les 30 minutes, pour prendre une nouvelle version si j'en publie une.
+  function planifier() {
+    clearTimeout(minuterie);
+    let attente = 60000;
+    const t = donnees && date(donnees.maj);
+    if (t) {
+      attente = t.getTime() + 95000 - Date.now();
+      while (attente < 20000) attente += 90000;
+    }
+    attente = Math.min(attente, 120000);
+    prochainA = Date.now() + attente;
+    minuterie = setTimeout(async () => {
+      if (!document.hidden) await charger();
+      planifier();
+    }, attente);
+  }
+  async function actualiser() {
+    if (Date.now() - ouverteA > 30 * 60e3) { location.reload(); return; }
+    await charger();
+    planifier();
+  }
+
+  actualiser();
   setInterval(tic, 1000);
-  document.addEventListener('visibilitychange', () => { if (!document.hidden) charger(); });
+  document.addEventListener('visibilitychange', () => { if (!document.hidden) actualiser(); });
+  window.addEventListener('pageshow', (e) => { if (e.persisted) actualiser(); });
   window.addEventListener('resize', () => { if (donnees) dessinerCourbe(donnees.courbe || [], donnees.total); });
 })();
 </script>
