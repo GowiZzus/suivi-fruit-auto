@@ -128,7 +128,7 @@
   let donnees = null, etag = null, apiPauseJusqua = 0, erreurReseau = false;
 
   const date = (s) => { const t = new Date(s); return s && !isNaN(t) ? t : null; };
-  const hm = (t) => t.getHours() + ' h ' + String(t.getMinutes()).padStart(2, '0');
+  const hm = (t) => t.getHours() + ' h ' + String(t.getMinutes()).padStart(2, '0');
   const jour = (t) => {
     const a = new Date();
     const n = Math.round((new Date(t.getFullYear(), t.getMonth(), t.getDate()) - new Date(a.getFullYear(), a.getMonth(), a.getDate())) / 864e5);
