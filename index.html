@@ -278,14 +278,22 @@
     let attente = 60000;
     const t = donnees && date(donnees.maj);
     if (t) {
-      // un tour du PC dure environ 100 s (90 s de pause + la mesure + l'envoi)
-      attente = t.getTime() + 110000 - Date.now();
-      while (attente < 20000) attente += 100000;
+      // un tour du PC dure environ 95 s (90 s de pause + la mesure + l'envoi) ; GitHub met ensuite
+      // quelques secondes a rendre le nouvel envoi visible, d'ou la marge
+      attente = t.getTime() + 125000 - Date.now();
+      while (attente < 20000) attente += 95000;
     }
-    attente = Math.min(attente, 130000);
+    attente = Math.min(attente, 140000);
     prochainA = Date.now() + attente;
     minuterie = setTimeout(async () => {
+      const avant = donnees && donnees.maj;
       if (!document.hidden) await charger();
+      // pas encore de nouvel envoi visible : un seul nouvel essai 20 s plus tard
+      if (donnees && donnees.maj === avant && donnees.etat === 'en_cours') {
+        prochainA = Date.now() + 20000;
+        minuterie = setTimeout(async () => { if (!document.hidden) await charger(); planifier(); }, 20000);
+        return;
+      }
       planifier();
     }, attente);
   }
