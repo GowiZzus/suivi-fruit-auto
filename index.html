@@ -250,7 +250,8 @@
       if (Date.now() > apiPauseJusqua) {
         const h = { Accept: 'application/vnd.github.raw+json' };
         if (etag) h['If-None-Match'] = etag;
-        const rep = await fetch(API, { headers: h, cache: 'no-store' });
+        // le "&t=" evite la copie en cache de 60 s que GitHub garde pour les lectures sans compte
+        const rep = await fetch(API + '&t=' + Date.now(), { headers: h, cache: 'no-store' });
         if (rep.status === 304) { erreurReseau = false; viaCache = false; tic(); return; }
         if (rep.ok) { r = rep; etag = rep.headers.get('etag'); viaCache = false; }
         else if (rep.status === 403 || rep.status === 429) {
