@@ -1,0 +1,270 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="robots" content="noindex">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="theme-color" content="#0f1112">
+<title>Fiches FRUIT AUTO</title>
+<style>
+  /* Une colonne, lisible au pouce : le chiffre et la barre d'abord, le detail ensuite. */
+  :root {
+    --fond: #f4f5f2; --carte: #ffffff; --trait: #e2e4de; --texte: #15181a; --doux: #5f6a66;
+    --accent: #ef5b3f; --accent-pale: #fbe0d9; --ok: #2f9e62; --alerte: #c97a0a; --mauvais: #d23c3c;
+    --piste: #e7e9e4;
+    --titre: ui-rounded, "SF Pro Rounded", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+    --corps: system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+    color-scheme: light;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --fond: #0f1112; --carte: #181b1d; --trait: #262a2d; --texte: #eef0ee; --doux: #98a29e;
+      --accent: #ff7656; --accent-pale: #3a211b; --ok: #4cc283; --alerte: #e9a23b; --mauvais: #ff6b6b;
+      --piste: #24282b; color-scheme: dark;
+    }
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; background: var(--fond); color: var(--texte); font-family: var(--corps); }
+  body { padding: max(16px, env(safe-area-inset-top)) max(16px, env(safe-area-inset-right)) max(24px, env(safe-area-inset-bottom)) max(16px, env(safe-area-inset-left)); }
+  main { max-width: 34rem; margin: 0 auto; display: grid; gap: 14px; }
+  h1 { font-family: var(--titre); font-size: 1.35rem; font-weight: 700; margin: 0; letter-spacing: -0.01em; }
+  h2 { font-size: 0.95rem; font-weight: 600; margin: 0; }
+  .tete { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; padding-top: 4px; }
+  .etat { display: inline-flex; align-items: center; gap: 0.45em; padding: 0.28em 0.8em; border-radius: 999px; border: 1px solid var(--trait); background: var(--carte); font-size: 0.8rem; font-weight: 600; color: var(--doux); }
+  .etat::before { content: ""; width: 0.55em; height: 0.55em; border-radius: 50%; background: currentColor; }
+  .etat[data-etat="en_cours"] { color: var(--ok); }
+  .etat[data-etat="en_cours"]::before { animation: pouls 1.6s ease-in-out infinite; }
+  .etat[data-etat="termine"] { color: var(--ok); }
+  .etat[data-etat="arrete"] { color: var(--mauvais); }
+  @keyframes pouls { 50% { opacity: 0.25; } }
+  .carte { background: var(--carte); border: 1px solid var(--trait); border-radius: 16px; padding: 18px; display: grid; gap: 12px; min-width: 0; }
+  .grand { display: flex; align-items: baseline; gap: 0.3em; flex-wrap: wrap; font-variant-numeric: tabular-nums; }
+  .nombre { font-family: var(--titre); font-size: clamp(3rem, 16vw, 4.2rem); font-weight: 700; line-height: 0.95; letter-spacing: -0.03em; }
+  .sur { color: var(--doux); font-size: 1.1rem; }
+  .pct { margin-left: auto; font-size: 1.4rem; font-weight: 700; font-variant-numeric: tabular-nums; color: var(--accent); }
+  .barre { height: 18px; border-radius: 999px; background: var(--piste); overflow: hidden; position: relative; }
+  .barre > i { display: block; height: 100%; width: 0; border-radius: inherit; background: var(--accent); position: relative; overflow: hidden; }
+  .barre.vivante > i::after { content: ""; position: absolute; inset: 0; background: linear-gradient(90deg, transparent, rgba(255,255,255,0.35), transparent); transform: translateX(-100%); animation: reflet 2.2s ease-in-out infinite; }
+  @keyframes reflet { to { transform: translateX(100%); } }
+  .phrase { margin: 0; color: var(--doux); line-height: 1.45; }
+  .phrase b { color: var(--texte); }
+  .maj { margin: 0; font-size: 0.8rem; color: var(--doux); font-variant-numeric: tabular-nums; }
+  .alerte { margin: 0; font-size: 0.85rem; color: var(--alerte); }
+  .groupes { display: grid; gap: 12px; }
+  .groupe { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 6px 12px; align-items: baseline; }
+  .groupe .barre { grid-column: 1 / -1; height: 8px; }
+  .groupe .barre > i { background: var(--texte); opacity: 0.75; }
+  .val { font-variant-numeric: tabular-nums; color: var(--doux); }
+  .val b { color: var(--texte); }
+  .courbe { position: relative; min-height: 170px; touch-action: pan-y; }
+  .courbe svg { display: block; width: 100%; height: 170px; overflow: visible; }
+  .courbe text { fill: var(--doux); font-size: 11px; font-family: var(--corps); }
+  .bulle { position: absolute; pointer-events: none; background: var(--carte); border: 1px solid var(--trait); border-radius: 10px; padding: 4px 8px; font-size: 0.8rem; white-space: nowrap; transform: translate(-50%, calc(-100% - 10px)); box-shadow: 0 4px 14px rgba(0,0,0,0.15); font-variant-numeric: tabular-nums; }
+  .faits { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; margin: 0; }
+  .faits dt { font-size: 0.78rem; color: var(--doux); }
+  .faits dd { margin: 2px 0 0; font-weight: 600; font-variant-numeric: tabular-nums; }
+  .pied { margin: 0; font-size: 0.75rem; color: var(--doux); text-align: center; }
+  @media (prefers-reduced-motion: reduce) { .etat::before, .barre > i::after { animation: none !important; } .barre > i { transition: none !important; } }
+  @media (prefers-reduced-motion: no-preference) { .barre > i { transition: width 0.8s cubic-bezier(.2,.8,.2,1); } }
+</style>
+</head>
+<body>
+<main>
+  <header class="tete">
+    <h1>Fiches FRUIT AUTO</h1>
+    <span class="etat" id="etat">Chargement…</span>
+  </header>
+
+  <section class="carte" aria-label="Avancement">
+    <div class="grand">
+      <span class="nombre" id="faites">—</span>
+      <span class="sur">/ <span id="total">—</span> vidéos</span>
+      <span class="pct"><span id="pourcent">—</span> %</span>
+    </div>
+    <div class="barre" id="barre" role="progressbar" aria-label="Vidéos faites" aria-valuemin="0" aria-valuemax="100"><i></i></div>
+    <p class="phrase" id="phrase">—</p>
+    <p class="maj" id="maj">—</p>
+    <p class="alerte" id="alerte" hidden></p>
+  </section>
+
+  <section class="carte">
+    <h2>Par groupe</h2>
+    <div class="groupes">
+      <div class="groupe"><span>TOP</span><span class="val"><b id="top_f">—</b> / <span id="top_t">—</span></span><div class="barre" id="top_b"><i></i></div></div>
+      <div class="groupe"><span>FLOP</span><span class="val"><b id="flop_f">—</b> / <span id="flop_t">—</span></span><div class="barre" id="flop_b"><i></i></div></div>
+      <div class="groupe"><span>MOYEN</span><span class="val"><b id="moyen_f">—</b> / <span id="moyen_t">—</span></span><div class="barre" id="moyen_b"><i></i></div></div>
+      <div class="groupe"><span>Tes vidéos</span><span class="val"><b id="moi_f">—</b> / <span id="moi_t">—</span></span><div class="barre" id="moi_b"><i></i></div></div>
+    </div>
+  </section>
+
+  <section class="carte">
+    <h2>Vidéos faites depuis le lancement</h2>
+    <div class="courbe" id="courbe"></div>
+  </section>
+
+  <section class="carte">
+    <dl class="faits">
+      <div><dt>Rythme</dt><dd><span id="rythme">—</span> / heure</dd></div>
+      <div><dt>Dernière fiche</dt><dd id="derniere">—</dd></div>
+      <div><dt>Erreurs</dt><dd id="erreurs">—</dd></div>
+      <div><dt>Disque libre</dt><dd><span id="disque">—</span> Go</dd></div>
+    </dl>
+  </section>
+
+  <p class="pied">Le PC envoie l'avancement toutes les 90 secondes environ. La page se met à jour toute seule.</p>
+</main>
+
+<script>
+(() => {
+  const hote = location.hostname;
+  const PROPRIO = hote.endsWith('.github.io') ? hote.split('.')[0] : 'GowiZzus';
+  const DEPOT = location.pathname.split('/').filter(Boolean)[0] || 'suivi-fruit-auto';
+  const API = `https://api.github.com/repos/${PROPRIO}/${DEPOT}/contents/etat.json?ref=donnees`;
+  const BRUT = `https://raw.githubusercontent.com/${PROPRIO}/${DEPOT}/donnees/etat.json`;
+  const $ = (id) => document.getElementById(id);
+  let donnees = null, etag = null, apiPauseJusqua = 0, erreurReseau = false;
+
+  const date = (s) => { const t = new Date(s); return s && !isNaN(t) ? t : null; };
+  const hm = (t) => t.getHours() + ' h ' + String(t.getMinutes()).padStart(2, '0');
+  const jour = (t) => {
+    const a = new Date();
+    const n = Math.round((new Date(t.getFullYear(), t.getMonth(), t.getDate()) - new Date(a.getFullYear(), a.getMonth(), a.getDate())) / 864e5);
+    return n === 0 ? "aujourd'hui" : n === 1 ? 'demain' : n === -1 ? 'hier' : t.toLocaleDateString('fr-FR', { weekday: 'long', day: 'numeric' });
+  };
+  const texte = (id, v) => { const el = $(id); if (el) el.textContent = v === undefined || v === null || v === '' ? '—' : String(v); };
+  const remplir = (id, f, t) => {
+    const el = $(id); if (!el) return;
+    const p = t > 0 ? Math.min(100, (100 * f) / t) : 0;
+    el.firstElementChild.style.width = p + '%';
+    el.setAttribute('aria-valuenow', String(Math.round(p)));
+  };
+
+  function afficher() {
+    const d = donnees; if (!d) return;
+    const noms = { en_cours: 'En cours', arrete: 'Arrêté', termine: 'Terminé' };
+    const etat = $('etat'); etat.textContent = noms[d.etat] || d.etat; etat.dataset.etat = d.etat;
+    texte('faites', d.faites); texte('total', d.total); texte('pourcent', d.pourcent);
+    remplir('barre', d.faites, d.total);
+    $('barre').classList.toggle('vivante', d.etat === 'en_cours');
+    for (const g of ['top', 'flop', 'moyen', 'moi']) {
+      texte(g + '_f', d[g + '_faites']); texte(g + '_t', d[g + '_total']); remplir(g + '_b', d[g + '_faites'], d[g + '_total']);
+    }
+    texte('rythme', d.fiches_par_heure); texte('erreurs', d.erreurs); texte('disque', d.disque_libre_go);
+    const der = date(d.derniere_fiche); texte('derniere', der ? hm(der) : '—');
+    const ph = $('phrase'); ph.replaceChildren();
+    if (d.etat === 'termine') ph.textContent = "Toutes les fiches sont faites. L'analyse peut commencer.";
+    else if (d.etat === 'arrete') ph.textContent = "La fabrication est arrêtée sur le PC. Relance LANCER_FICHES.bat : elle reprendra là où elle s'est arrêtée.";
+    else {
+      const fin = date(d.fin_estimee);
+      const b1 = document.createElement('b'); b1.textContent = String(d.fiches_par_heure);
+      const b2 = document.createElement('b'); b2.textContent = fin ? jour(fin) + ' vers ' + hm(fin) : '—';
+      ph.append('Au rythme de ', b1, ' vidéos par heure, la dernière fiche est prévue ', b2, '.');
+    }
+    dessinerCourbe(d.courbe || [], d.total);
+    tic();
+  }
+
+  function tic() {
+    const d = donnees; if (!d) return;
+    const t = date(d.maj); if (!t) return;
+    const s = Math.max(0, Math.round((Date.now() - t) / 1000));
+    const age = s < 60 ? `il y a ${s} s` : s < 3600 ? `il y a ${Math.floor(s / 60)} min` : `il y a ${Math.floor(s / 3600)} h ${String(Math.floor(s / 60) % 60).padStart(2, '0')}`;
+    $('maj').textContent = `Dernier envoi du PC : ${hm(t)} (${age})` + (erreurReseau ? ' · connexion perdue, nouvel essai…' : '');
+    const al = $('alerte');
+    if (d.etat !== 'termine' && s > 600) {
+      al.textContent = "Le PC n'a rien envoyé depuis plus de 10 minutes : il est peut-être éteint, en veille ou sans internet.";
+      al.hidden = false;
+    } else al.hidden = true;
+  }
+
+  function dessinerCourbe(pts, total) {
+    const box = $('courbe'); box.replaceChildren();
+    const P = pts.map(([s, n]) => ({ t: date(s), n: +n })).filter((p) => p.t && !isNaN(p.n));
+    if (P.length < 2) { const p = document.createElement('p'); p.className = 'maj'; p.textContent = 'La courbe apparaîtra dans quelques minutes.'; box.append(p); return; }
+    const W = Math.max(260, box.clientWidth), H = 170, m = { t: 12, r: 10, b: 22, l: 34 };
+    const t0 = P[0].t.getTime(), t1 = P[P.length - 1].t.getTime();
+    const ymax = Math.max(total || 0, ...P.map((p) => p.n));
+    const x = (t) => m.l + ((t - t0) / Math.max(1, t1 - t0)) * (W - m.l - m.r);
+    const y = (n) => H - m.b - (n / ymax) * (H - m.t - m.b);
+    const NS = 'http://www.w3.org/2000/svg';
+    const svg = document.createElementNS(NS, 'svg');
+    svg.setAttribute('viewBox', `0 0 ${W} ${H}`); svg.setAttribute('role', 'img');
+    svg.setAttribute('aria-label', `Vidéos faites depuis le lancement : de ${P[0].n} à ${P[P.length - 1].n} sur ${total}`);
+    const el = (nom, attrs, txt) => { const e = document.createElementNS(NS, nom); for (const k in attrs) e.setAttribute(k, attrs[k]); if (txt !== undefined) e.textContent = txt; svg.append(e); return e; };
+    const pas = ymax > 600 ? 250 : ymax > 200 ? 100 : 50;
+    for (let v = 0; v <= ymax; v += pas) {
+      el('line', { x1: m.l, x2: W - m.r, y1: y(v), y2: y(v), stroke: 'var(--trait)', 'stroke-width': 1 });
+      el('text', { x: m.l - 6, y: y(v) + 4, 'text-anchor': 'end' }, String(v));
+    }
+    el('line', { x1: m.l, x2: W - m.r, y1: y(ymax), y2: y(ymax), stroke: 'var(--doux)', 'stroke-dasharray': '4 4', 'stroke-width': 1 });
+    el('text', { x: m.l + 4, y: y(ymax) - 5 }, `Objectif : ${total}`);
+    const nbHeures = Math.max(1, Math.round((t1 - t0) / 36e5));
+    const pasH = Math.max(1, Math.ceil(nbHeures / Math.max(2, Math.floor((W - m.l) / 70))));
+    const debut = new Date(t0); debut.setMinutes(0, 0, 0);
+    for (let h = new Date(debut.getTime() + 36e5); h.getTime() <= t1; h = new Date(h.getTime() + pasH * 36e5)) {
+      el('text', { x: x(h.getTime()), y: H - 6, 'text-anchor': 'middle' }, h.getHours() + ' h');
+    }
+    const ligne = P.map((p, i) => (i ? 'L' : 'M') + x(p.t.getTime()).toFixed(1) + ' ' + y(p.n).toFixed(1)).join(' ');
+    el('path', { d: ligne + ` L${x(t1).toFixed(1)} ${y(0)} L${x(t0).toFixed(1)} ${y(0)} Z`, fill: 'var(--accent)', 'fill-opacity': 0.14 });
+    el('path', { d: ligne, fill: 'none', stroke: 'var(--accent)', 'stroke-width': 2.2, 'stroke-linejoin': 'round' });
+    const fin = P[P.length - 1];
+    el('circle', { cx: x(t1), cy: y(fin.n), r: 4.5, fill: 'var(--accent)' });
+    el('text', { x: x(t1) - 8, y: y(fin.n) - 9, 'text-anchor': 'end', style: 'font-weight:600' }, String(fin.n));
+    const point = el('circle', { r: 5, fill: 'var(--accent)', stroke: 'var(--carte)', 'stroke-width': 2, visibility: 'hidden' });
+    const zone = el('rect', { x: m.l, y: m.t, width: W - m.l - m.r, height: H - m.t - m.b, fill: 'transparent' });
+    box.append(svg);
+    const bulle = document.createElement('div'); bulle.className = 'bulle'; bulle.hidden = true; box.append(bulle);
+    const montrer = (ev) => {
+      const r = svg.getBoundingClientRect();
+      const px = ((ev.clientX - r.left) / r.width) * W;
+      const t = t0 + ((px - m.l) / (W - m.l - m.r)) * (t1 - t0);
+      let best = P[0]; for (const p of P) if (Math.abs(p.t - t) < Math.abs(best.t - t)) best = p;
+      point.setAttribute('cx', x(best.t.getTime())); point.setAttribute('cy', y(best.n)); point.setAttribute('visibility', 'visible');
+      const k = r.width / W;
+      bulle.textContent = `${hm(best.t)} · ${best.n} vidéos`;
+      bulle.style.left = Math.min(r.width - 60, Math.max(60, x(best.t.getTime()) * k)) + 'px';
+      bulle.style.top = y(best.n) * (170 / H) + 'px';
+      bulle.hidden = false;
+    };
+    zone.addEventListener('pointermove', montrer);
+    zone.addEventListener('pointerdown', montrer);
+    zone.addEventListener('pointerleave', () => { bulle.hidden = true; point.setAttribute('visibility', 'hidden'); });
+  }
+
+  async function charger() {
+    try {
+      let r = null;
+      if (Date.now() > apiPauseJusqua) {
+        const h = { Accept: 'application/vnd.github.raw+json' };
+        if (etag) h['If-None-Match'] = etag;
+        const rep = await fetch(API, { headers: h, cache: 'no-store' });
+        if (rep.status === 304) { erreurReseau = false; tic(); return; }
+        if (rep.ok) { r = rep; etag = rep.headers.get('etag'); }
+        else if (rep.status === 403 || rep.status === 429) {
+          const reset = +rep.headers.get('x-ratelimit-reset');
+          apiPauseJusqua = reset ? reset * 1000 : Date.now() + 15 * 60e3;
+        }
+      }
+      if (!r) r = await fetch(BRUT + '?t=' + Date.now(), { cache: 'no-store' });
+      if (!r.ok) throw new Error('HTTP ' + r.status);
+      donnees = await r.json();
+      erreurReseau = false;
+      afficher();
+    } catch (e) {
+      erreurReseau = true; tic();
+      if (!donnees) $('etat').textContent = 'Pas encore de données';
+    }
+  }
+
+  charger();
+  setInterval(() => { if (!document.hidden) charger(); }, 60000);
+  setInterval(tic, 1000);
+  document.addEventListener('visibilitychange', () => { if (!document.hidden) charger(); });
+  window.addEventListener('resize', () => { if (donnees) dessinerCourbe(donnees.courbe || [], donnees.total); });
+})();
+</script>
+</body>
+</html>
