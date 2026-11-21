@@ -31,6 +31,7 @@
     }
   }
   * { box-sizing: border-box; }
+  [hidden] { display: none !important; }
   html, body { margin: 0; background: var(--fond); color: var(--texte); font-family: var(--corps); }
   body { padding: max(16px, env(safe-area-inset-top)) max(16px, env(safe-area-inset-right)) max(24px, env(safe-area-inset-bottom)) max(16px, env(safe-area-inset-left)); }
   main { max-width: 34rem; margin: 0 auto; display: grid; gap: 14px; }
@@ -71,6 +72,33 @@
   .faits dt { font-size: 0.78rem; color: var(--doux); }
   .faits dd { margin: 2px 0 0; font-weight: 600; font-variant-numeric: tabular-nums; }
   .pied { margin: 0; font-size: 0.75rem; color: var(--doux); text-align: center; }
+  /* Demandes : ajouter des videos, annuler */
+  .petit { font-size: 0.9rem; }
+  .choix { display: grid; grid-template-columns: minmax(0, 1fr) 5.8rem; gap: 14px; align-items: center; }
+  .choix input[type="range"] { width: 100%; margin: 0; height: 34px; accent-color: var(--accent); }
+  .choix input[type="number"] { width: 100%; font: inherit; font-size: 1.15rem; font-weight: 700; padding: 8px 6px; border-radius: 10px; border: 1px solid var(--trait); background: var(--fond); color: var(--texte); text-align: center; font-variant-numeric: tabular-nums; }
+  .bouton { display: block; text-align: center; padding: 14px 16px; border-radius: 12px; background: var(--accent); color: #fff; font-weight: 700; text-decoration: none; -webkit-tap-highlight-color: transparent; }
+  .bouton:active { transform: scale(0.98); }
+  .bouton.second { background: transparent; color: var(--mauvais); border: 1px solid var(--trait); font-weight: 600; padding: 12px 16px; }
+  .bouton[aria-disabled="true"] { opacity: 0.45; pointer-events: none; }
+  .aide { margin: 0; font-size: 0.8rem; color: var(--doux); line-height: 1.5; }
+  .aide b { color: var(--texte); }
+  code { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; font-size: 0.85em; background: var(--piste); color: var(--texte); padding: 1px 6px; border-radius: 6px; white-space: nowrap; }
+  .note { margin: 0; font-size: 0.85rem; line-height: 1.45; padding: 10px 12px; border-radius: 10px; background: var(--accent-pale); }
+  .note.bien { background: transparent; border: 1px solid var(--trait); }
+  .note.bien::before { content: "✓ "; color: var(--ok); font-weight: 700; }
+  .note.mal { background: transparent; border: 1px solid var(--trait); }
+  .note.mal::before { content: "! "; color: var(--alerte); font-weight: 700; }
+  .liste { list-style: none; margin: 0; padding: 0; display: grid; gap: 16px; }
+  .dem { display: grid; gap: 6px; }
+  .dem .l { display: flex; justify-content: space-between; align-items: center; gap: 10px; min-width: 0; }
+  .dem .barre { height: 6px; }
+  .dem .barre > i { background: var(--texte); opacity: 0.75; }
+  .dem.finie .barre > i { background: var(--ok); opacity: 1; }
+  .dem.annulee { opacity: 0.55; }
+  .puce { font-size: 0.72rem; font-weight: 600; padding: 2px 8px; border-radius: 999px; border: 1px solid var(--trait); color: var(--doux); white-space: nowrap; }
+  .puce[data-s="en_cours"] { color: var(--ok); border-color: currentColor; }
+  .annuler { color: var(--mauvais); font-size: 0.85rem; font-weight: 600; text-decoration: none; padding: 6px 0 6px 12px; white-space: nowrap; }
   @media (prefers-reduced-motion: reduce) { .etat::before, .barre > i::after { animation: none !important; } .barre > i { transition: none !important; } }
   @media (prefers-reduced-motion: no-preference) { .barre > i { transition: width 0.8s cubic-bezier(.2,.8,.2,1); } }
 </style>
@@ -93,6 +121,28 @@
     <p class="maj" id="maj">—</p>
     <p class="maj" id="auto">Actualisation automatique…</p>
     <p class="alerte" id="alerte" hidden></p>
+    <a class="bouton" id="relancer" target="_blank" rel="noopener" hidden>Relancer la fabrication</a>
+  </section>
+
+  <section class="carte" id="ajout" aria-labelledby="ajout_t" hidden>
+    <h2 id="ajout_t">Ajouter des vidéos</h2>
+    <p class="phrase petit" id="dispo">—</p>
+    <div class="choix" id="choix">
+      <input type="range" id="curseur" min="1" max="100" step="1" value="50" aria-label="Nombre de vidéos à ajouter">
+      <input type="number" id="nb" min="1" max="100" step="1" value="50" inputmode="numeric" aria-label="Nombre de vidéos à ajouter, à taper">
+    </div>
+    <p class="maj" id="duree">—</p>
+    <a class="bouton" id="demander" target="_blank" rel="noopener">Demander 50 vidéos</a>
+    <p class="aide">GitHub s'ouvre avec la demande déjà écrite : appuie sur <b>Create</b>. Le PC la lit en moins d'une minute, l'exécute, répond dans le ticket et le ferme. Si l'appli GitHub s'ouvre sans le texte, mets comme titre <code id="cmd">AJOUTER 50</code>. Seules les demandes faites avec ton compte GitHub sont prises en compte.</p>
+  </section>
+
+  <section class="carte" id="cartedem" aria-labelledby="dem_t" hidden>
+    <h2 id="dem_t">Demandes</h2>
+    <p class="note" id="envoi" hidden></p>
+    <p class="note" id="reponse" hidden></p>
+    <ul class="liste" id="liste"></ul>
+    <a class="bouton second" id="tout" target="_blank" rel="noopener" hidden>Annuler toutes les demandes en plus</a>
+    <p class="aide">Annuler retire les vidéos pas encore faites ; les fiches déjà faites sont gardées. Les vidéos retirées redeviennent disponibles.</p>
   </section>
 
   <section class="carte">
@@ -119,7 +169,7 @@
     </dl>
   </section>
 
-  <p class="pied">Le PC envoie l'avancement toutes les 90 secondes environ. La page se met à jour toute seule : pas besoin de la recharger.</p>
+  <p class="pied">Le PC envoie l'avancement toutes les 90 secondes environ et lit tes demandes toutes les 20 secondes. La page se met à jour toute seule : pas besoin de la recharger.</p>
 </main>
 
 <script>
@@ -133,6 +183,22 @@
   let donnees = null, etag = null, apiPauseJusqua = 0, erreurReseau = false, viaCache = false;
   let minuterie = null, prochainA = 0;
   const ouverteA = Date.now();
+
+  // ---- Demandes : la page ouvre un ticket GitHub dont le titre est la commande ; le PC le lit,
+  // l'execute (seulement si c'est le proprietaire du depot qui l'a ouvert), repond et le ferme.
+  const NOUVEAU = `https://github.com/${PROPRIO}/${DEPOT}/issues/new`;
+  const lienCommande = (cmd) => NOUVEAU + '?title=' + encodeURIComponent(cmd) + '&body='
+    + encodeURIComponent("Demande envoyée depuis la page de suivi. Le PC l'exécute, répond ici puis ferme ce ticket tout seul.");
+  const memo = {
+    lire(k) { try { return JSON.parse(localStorage.getItem(k)); } catch (e) { return null; } },
+    ecrire(k, v) { try { if (v === null) localStorage.removeItem(k); else localStorage.setItem(k, JSON.stringify(v)); } catch (e) { /* stockage indisponible */ } },
+  };
+  let envoi = memo.lire('fa_envoi');           // derniere commande ouverte dans GitHub : {cmd, t}
+  let choixNb = +(memo.lire('fa_nb') || 50);    // dernier nombre choisi
+  const ENVOI_MAX = 15 * 60e3;
+  const envoiEnAttente = () => envoi && Date.now() - envoi.t < ENVOI_MAX;
+  const brancher = (a, cmd) => { a.href = lienCommande(cmd); a.dataset.cmd = cmd; };
+  const duree = (min) => min < 60 ? `${Math.max(1, Math.round(min))} min` : `${Math.floor(min / 60)} h ${String(Math.round(min % 60)).padStart(2, '0')}`;
 
   const date = (s) => { const t = new Date(s); return s && !isNaN(t) ? t : null; };
   const hm = (t) => t.getHours() + ' h ' + String(t.getMinutes()).padStart(2, '0');
@@ -162,16 +228,123 @@
     texte('rythme', d.fiches_par_heure); texte('erreurs', d.erreurs); texte('disque', d.disque_libre_go);
     const der = date(d.derniere_fiche); texte('derniere', der ? hm(der) : '—');
     const ph = $('phrase'); ph.replaceChildren();
-    if (d.etat === 'termine') ph.textContent = "Toutes les fiches sont faites. L'analyse peut commencer.";
-    else if (d.etat === 'arrete') ph.textContent = "La fabrication est arrêtée sur le PC. Relance LANCER_FICHES.bat : elle reprendra là où elle s'est arrêtée.";
+    const ratees = d.total - d.faites;
+    if (d.etat === 'termine') ph.textContent = ratees > 0
+      ? `Terminé : ${d.faites} fiches faites. ${ratees} vidéo${ratees > 1 ? 's' : ''} n'${ratees > 1 ? 'ont' : 'a'} pas pu être téléchargée${ratees > 1 ? 's' : ''} (supprimée${ratees > 1 ? 's' : ''} ou privée${ratees > 1 ? 's' : ''}).`
+      : "Toutes les fiches sont faites. L'analyse peut commencer.";
+    else if (d.etat === 'arrete') ph.textContent = d.commandes
+      ? "La fabrication est arrêtée sur le PC. Appuie sur « Relancer » : elle reprendra là où elle s'est arrêtée."
+      : "La fabrication est arrêtée sur le PC. Relance LANCER_FICHES.bat : elle reprendra là où elle s'est arrêtée.";
     else {
       const fin = date(d.fin_estimee);
       const b1 = document.createElement('b'); b1.textContent = String(d.fiches_par_heure);
       const b2 = document.createElement('b'); b2.textContent = fin ? jour(fin) + ' vers ' + hm(fin) : '—';
       ph.append('Au rythme de ', b1, ' vidéos par heure, la dernière fiche est prévue ', b2, '.');
     }
+    const rel = $('relancer'); rel.hidden = !(d.commandes && d.etat === 'arrete'); brancher(rel, 'RELANCER');
+    afficherDemandes(d);
     dessinerCourbe(d.courbe || [], d.total);
     tic();
+  }
+
+  // Curseur + case a taper, toujours d'accord entre eux
+  function lireNb() {
+    const max = +$('curseur').max;
+    const n = Math.round(+$('nb').value);
+    return Number.isFinite(n) && n >= 1 ? Math.min(n, max) : null;
+  }
+  function majChoix() {
+    const d = donnees; if (!d) return;
+    const n = lireNb();
+    const bouton = $('demander');
+    if (!n) { bouton.setAttribute('aria-disabled', 'true'); bouton.textContent = 'Choisis un nombre'; $('duree').textContent = '—'; return; }
+    choixNb = n; memo.ecrire('fa_nb', n);
+    const cmd = 'AJOUTER ' + n;
+    brancher(bouton, cmd); bouton.removeAttribute('aria-disabled');
+    bouton.textContent = `Demander ${n} vidéo${n > 1 ? 's' : ''}`;
+    $('cmd').textContent = cmd;
+    const parHeure = d.fiches_par_heure > 0 ? d.fiches_par_heure : 70;
+    const fin = new Date(Date.now() + ((d.restantes ?? (d.total - d.faites)) + n) / parHeure * 36e5);
+    $('duree').textContent = `≈ ${duree((n / parHeure) * 60)} de travail en plus · tout serait fini ${jour(fin)} vers ${hm(fin)}`;
+  }
+
+  function afficherDemandes(d) {
+    const ajout = $('ajout'), carte = $('cartedem');
+    if (!d.commandes) { ajout.hidden = carte.hidden = true; return; }
+    ajout.hidden = carte.hidden = false;
+
+    // -- ajouter
+    const dispo = d.disponibles || 0, max = Math.min(dispo, 2000);
+    $('dispo').textContent = dispo > 0
+      ? `${dispo} vidéo${dispo > 1 ? 's' : ''} de moins de 3 mois ${dispo > 1 ? 'sont' : 'est'} encore disponible${dispo > 1 ? 's' : ''} sur les comptes suivis. Elles sont prises comme les autres : TOP, MOYEN et FLOP à tour de rôle.`
+      : "Plus aucune vidéo de moins de 3 mois n'est disponible sur les comptes suivis.";
+    $('choix').hidden = $('duree').hidden = max < 1;
+    $('demander').hidden = max < 1;
+    if (max >= 1) {
+      const c = $('curseur'), nb = $('nb');
+      c.max = nb.max = String(max);
+      if (document.activeElement !== nb) { const v = Math.min(Math.max(1, choixNb), max); c.value = nb.value = String(v); }
+      majChoix();
+    }
+
+    // -- liste
+    const liste = $('liste'); liste.replaceChildren();
+    const dem = (d.demandes || []).slice().sort((a, b) => a.n - b.n);
+    const enCours = dem.find((x) => x.statut === 'active' && x.faites < x.nombre);
+    const visibles = dem.length > 9 ? [dem[0], ...dem.slice(-8)] : dem;
+    for (const x of visibles) {
+      const masc = x.n === 0; // « le lot de depart »
+      const finie = x.statut === 'active' && x.faites >= x.nombre;
+      let puce, s = '';
+      if (x.statut === 'annulee') puce = masc ? 'Annulé' : 'Annulée';
+      else if (finie) puce = masc ? 'Terminé' : 'Terminée';
+      else if (x === enCours) { puce = d.etat === 'en_cours' ? 'En cours' : 'En attente'; s = d.etat === 'en_cours' ? 'en_cours' : ''; }
+      else puce = 'En file';
+      const li = document.createElement('li');
+      li.className = 'dem' + (x.statut === 'annulee' ? ' annulee' : '') + (finie ? ' finie' : '');
+      const l1 = document.createElement('div'); l1.className = 'l';
+      const nom = document.createElement('b'); nom.textContent = x.nom;
+      const p = document.createElement('span'); p.className = 'puce'; p.textContent = puce; if (s) p.dataset.s = s;
+      l1.append(nom, p);
+      const l2 = document.createElement('div'); l2.className = 'l';
+      const val = document.createElement('span'); val.className = 'val';
+      const bf = document.createElement('b'); bf.textContent = String(x.faites);
+      val.append(bf, ` / ${x.nombre} faites` + (x.retirees ? ` · ${x.retirees} retirée${x.retirees > 1 ? 's' : ''}` : ''));
+      l2.append(val);
+      if (x.statut === 'active' && !finie) {
+        const a = document.createElement('a'); a.className = 'annuler'; a.target = '_blank'; a.rel = 'noopener';
+        a.textContent = masc ? 'Annuler le reste' : 'Annuler';
+        a.setAttribute('aria-label', `Annuler ${x.nom}`);
+        brancher(a, 'ANNULER ' + x.n);
+        l2.append(a);
+      }
+      const b = document.createElement('div'); b.className = 'barre'; b.append(document.createElement('i'));
+      li.append(l1, l2, b);
+      liste.append(li);
+      b.firstElementChild.style.width = (x.nombre ? Math.min(100, (100 * x.faites) / x.nombre) : 0) + '%';
+    }
+    const actives = dem.filter((x) => x.n > 0 && x.statut === 'active' && x.faites < x.nombre).length;
+    const tout = $('tout'); tout.hidden = actives < 2; brancher(tout, 'ANNULER TOUT');
+
+    // -- reponse du PC a la derniere demande
+    const msgs = d.messages || [];
+    const dernier = msgs[msgs.length - 1];
+    const tDernier = dernier && date(dernier.quand);
+    if (envoi && tDernier && tDernier.getTime() >= envoi.t - 60e3) { envoi = null; memo.ecrire('fa_envoi', null); }
+    const rep = $('reponse');
+    if (tDernier && Date.now() - tDernier < 12 * 36e5) {
+      rep.className = 'note ' + (dernier.ok ? 'bien' : 'mal');
+      rep.textContent = `Réponse du PC (${hm(tDernier)}) : ${dernier.texte}`;
+      rep.hidden = false;
+    } else rep.hidden = true;
+    afficherEnvoi();
+  }
+
+  function afficherEnvoi() {
+    const el = $('envoi');
+    if (!envoiEnAttente()) { el.hidden = true; return; }
+    el.textContent = `« ${envoi.cmd} » ouvert dans GitHub à ${hm(new Date(envoi.t))}. Une fois le ticket validé (Create), la réponse du PC arrive ici en moins de 2 minutes.`;
+    el.hidden = false;
   }
 
   function tic() {
@@ -284,6 +457,8 @@
       while (attente < 20000) attente += 95000;
     }
     attente = Math.min(attente, 140000);
+    // une demande vient d'etre ouverte dans GitHub : on regarde plus souvent pour montrer vite la reponse du PC
+    if (envoiEnAttente()) attente = Math.min(attente, 30000);
     prochainA = Date.now() + attente;
     minuterie = setTimeout(async () => {
       const avant = donnees && donnees.maj;
@@ -302,6 +477,17 @@
     await charger();
     planifier();
   }
+
+  $('curseur').addEventListener('input', () => { $('nb').value = $('curseur').value; majChoix(); });
+  $('nb').addEventListener('input', () => { const n = lireNb(); if (n) $('curseur').value = String(n); majChoix(); });
+  $('nb').addEventListener('change', () => { const n = lireNb() || 1; $('nb').value = $('curseur').value = String(n); majChoix(); });
+  // toute commande ouverte dans GitHub est notee, pour afficher « en attente du PC » puis sa reponse
+  document.addEventListener('click', (e) => {
+    const a = e.target.closest && e.target.closest('a[data-cmd]');
+    if (!a || a.getAttribute('aria-disabled') === 'true') return;
+    envoi = { cmd: a.dataset.cmd, t: Date.now() }; memo.ecrire('fa_envoi', envoi);
+    afficherEnvoi(); planifier();
+  });
 
   actualiser();
   setInterval(tic, 1000);
